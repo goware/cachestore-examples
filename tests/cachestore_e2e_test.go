@@ -159,9 +159,122 @@ func TestCachestoreE2E(t *testing.T) {
 		require.Equal(t, 200, val3.Status)
 		require.Equal(t, "application/json", val3.Headers["Content-Type"])
 		require.Equal(t, []byte(`{"message": "Hello, World!"}`), val3.Body)
-
 	})
 
+	t.Run("compose memcache and rediscache direct", func(t *testing.T) {
+		redisFlushAll()
+
+		mem, err := memcache.NewCacheWithSize[string](10)
+		require.NoError(t, err)
+
+		red, err := rediscache.NewCache[string](&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
+		require.NoError(t, err)
+
+		composed, err := cachestore.ComposeStores(mem, red)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+
+		err = composed.Set(ctx, "a", "1")
+		require.NoError(t, err)
+		err = composed.Set(ctx, "b", "2")
+		require.NoError(t, err)
+		err = composed.Set(ctx, "c", "3")
+		require.NoError(t, err)
+
+		val, ok, err := composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "1", val)
+
+		val, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "2", val)
+
+		val, ok, err = composed.Get(ctx, "c")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "3", val)
+
+		err = mem.Delete(ctx, "a")
+		require.NoError(t, err)
+		err = mem.Delete(ctx, "c")
+		require.NoError(t, err)
+
+		val, ok, err = composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "1", val)
+
+		val, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "2", val)
+
+		val, ok, err = composed.Get(ctx, "c")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "3", val)
+	})
+
+	t.Run("compose memcache and rediscache backend", func(t *testing.T) {
+		backend, err := memcache.NewBackend(10)
+		require.NoError(t, err)
+
+		backend2, err := rediscache.NewBackend(&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
+		require.NoError(t, err)
+
+		mem := cachestore.OpenStore[string](backend)
+		red := cachestore.OpenStore[string](backend2)
+
+		composed, err := cachestore.ComposeBackends[string](backend, backend2)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+
+		composed.Set(ctx, "a", "1")
+		require.NoError(t, err)
+		err = composed.Set(ctx, "b", "2")
+		require.NoError(t, err)
+		err = composed.Set(ctx, "c", "3")
+		require.NoError(t, err)
+
+		val, ok, err := composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "1", val)
+
+		val, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "2", val)
+
+		val, ok, err = composed.Get(ctx, "c")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "3", val)
+
+		err = mem.Delete(ctx, "a")
+		require.NoError(t, err)
+		err = red.Delete(ctx, "c")
+		require.NoError(t, err)
+
+		val, ok, err = composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "1", val)
+
+		val, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "2", val)
+
+		val, ok, err = composed.Get(ctx, "c")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, "3", val)
+	})
 }
 
 type apiResponse struct {
