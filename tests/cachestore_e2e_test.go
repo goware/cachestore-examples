@@ -233,7 +233,7 @@ func TestCachestoreE2E(t *testing.T) {
 
 		ctx := context.Background()
 
-		composed.Set(ctx, "a", "1")
+		err = composed.Set(ctx, "a", "1")
 		require.NoError(t, err)
 		err = composed.Set(ctx, "b", "2")
 		require.NoError(t, err)
@@ -274,6 +274,64 @@ func TestCachestoreE2E(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, "3", val)
+	})
+
+	t.Run("compose memcache and rediscache backend with struct values", func(t *testing.T) {
+		backend, err := memcache.NewBackend(10)
+		require.NoError(t, err)
+
+		backend2, err := rediscache.NewBackend(&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
+		require.NoError(t, err)
+
+		mem := cachestore.OpenStore[apiResponse](backend)
+		red := cachestore.OpenStore[apiResponse](backend2)
+
+		composed, err := cachestore.ComposeBackends[apiResponse](backend, backend2)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+
+		resp1 := apiResponse{
+			Status:  200,
+			Headers: map[string]string{"Content-Type": "application/json"},
+			Body:    []byte(`{"message": "Hello, Alice!"}`),
+		}
+
+		resp2 := apiResponse{
+			Status:  201,
+			Headers: map[string]string{"Content-Type": "application/text"},
+			Body:    []byte(`{"message": "Hello, Bob!"}`),
+		}
+
+		err = composed.Set(ctx, "a", resp1)
+		require.NoError(t, err)
+		err = composed.Set(ctx, "b", resp2)
+		require.NoError(t, err)
+
+		val1, ok, err := composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, resp1, val1)
+
+		val2, ok, err := composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, resp2, val2)
+
+		err = mem.Delete(ctx, "a")
+		require.NoError(t, err)
+		err = red.Delete(ctx, "c")
+		require.NoError(t, err)
+
+		val1, ok, err = composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, resp1, val1)
+
+		resp2, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, resp2, val2)
 	})
 }
 
