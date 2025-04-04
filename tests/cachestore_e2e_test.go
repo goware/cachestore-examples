@@ -4,9 +4,9 @@ import (
 	"context"
 	"testing"
 
-	"github.com/goware/cachestore"
 	memcache "github.com/goware/cachestore-mem"
 	rediscache "github.com/goware/cachestore-redis"
+	cachestore "github.com/goware/cachestore2"
 	"github.com/stretchr/testify/require"
 )
 

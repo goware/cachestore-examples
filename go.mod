@@ -1,6 +1,6 @@
 module github.com/goware/cachestore-examples
 
-replace github.com/goware/cachestore => ../cachestore
+replace github.com/goware/cachestore2 => ../cachestore2
 
 replace github.com/goware/cachestore-mem => ../cachestore-mem
 
@@ -9,9 +9,9 @@ replace github.com/goware/cachestore-redis => ../cachestore-redis
 go 1.24.1
 
 require (
-	github.com/goware/cachestore v0.11.0
 	github.com/goware/cachestore-mem v0.0.0-00010101000000-000000000000
 	github.com/goware/cachestore-redis v0.0.0-00010101000000-000000000000
+	github.com/goware/cachestore2 v0.0.0-00010101000000-000000000000
 	github.com/redis/go-redis/v9 v9.7.3
 	github.com/stretchr/testify v1.10.0
 )
