@@ -21,14 +21,14 @@ func main() {
 		log.Fatal(err)
 	}
 
-	fmt.Println("!!! MEMCACHE BACKEND:")
+	fmt.Println("=> MEMCACHE BACKEND:")
 	l1 := cachestore.OpenStore[string](localBackend)
 	l1.Set(context.Background(), "key", "value!")
 	value, _, err := l1.Get(context.Background(), "key")
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(value)
+	fmt.Println("get key:", value)
 
 	l2 := cachestore.OpenStore[int](localBackend)
 	l2.Set(context.Background(), "key", 123)
@@ -36,12 +36,12 @@ func main() {
 	if err != nil {
 		log.Fatal(err)
 	}
-	fmt.Println(value2)
+	fmt.Println("get key:", value2)
 
 	//--
 	fmt.Println("")
 	fmt.Println("")
-	fmt.Println("!!! REDIS BACKEND:")
+	fmt.Println("=> REDIS BACKEND:")
 
 	r1 := cachestore.OpenStore[string](remoteBackend)
 	err = r1.Set(context.Background(), "key", "zvalue!")
@@ -50,63 +50,17 @@ func main() {
 	}
 	value3, _, err := r1.Get(context.Background(), "key")
 	if err != nil {
-		panic(err)
 		log.Fatal(err)
 	}
-	fmt.Println(value3)
+	fmt.Println("get key:", value3)
 
 	r2 := cachestore.OpenStore[int](remoteBackend)
 	r2.Set(context.Background(), "key2", 123)
 	value4, _, err := r2.Get(context.Background(), "key2")
 	if err != nil {
-		panic(err)
 		log.Fatal(err)
 	}
-	fmt.Println(value4)
+	fmt.Println("get key:", value4)
 
-	//--
-
-	// lets do compose next..
-}
-
-func main1() {
-	fmt.Println("Hello, World!")
-
-	var cache cachestore.Store[string]
-	var err error
-	cache, err = memcache.NewCacheWithSize[string](10)
-	if err != nil {
-		log.Fatal(err)
-	}
-	_ = cache
-
-	err = cache.Set(context.Background(), "key", "value!")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	value, _, err := cache.Get(context.Background(), "key")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(value)
-
-	var cache2 cachestore.Store[string]
-	cache2, err = rediscache.NewCache[string](&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379})
-	if err != nil {
-		log.Fatal(err)
-	}
-	_ = cache2
-
-	err = cache2.Set(context.Background(), "key", "value2!")
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	value, _, err = cache2.Get(context.Background(), "key")
-	if err != nil {
-		log.Fatal(err)
-	}
-	fmt.Println(value)
-
+	// Please see cachestore_e2e_test.go for more examples.
 }
