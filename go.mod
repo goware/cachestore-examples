@@ -6,7 +6,7 @@ replace github.com/goware/cachestore-mem => ../cachestore-mem
 
 replace github.com/goware/cachestore-redis => ../cachestore-redis
 
-go 1.24.1
+go 1.23.0
 
 require (
 	github.com/goware/cachestore-mem v0.0.0-00010101000000-000000000000
