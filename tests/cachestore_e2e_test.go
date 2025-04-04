@@ -34,7 +34,7 @@ func TestCachestoreE2E(t *testing.T) {
 		require.Equal(t, "bar", val)
 		require.True(t, ok)
 
-		// TODO: a few more tests later..
+		// TODO: a few more tests later...
 	})
 
 	t.Run("redis direct", func(t *testing.T) {
