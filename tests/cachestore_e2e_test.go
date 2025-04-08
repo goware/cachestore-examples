@@ -2,6 +2,7 @@ package cachestore_e2e_test
 
 import (
 	"context"
+	"math/big"
 	"testing"
 
 	memcache "github.com/goware/cachestore-mem"
@@ -332,6 +333,55 @@ func TestCachestoreE2E(t *testing.T) {
 		require.NoError(t, err)
 		require.True(t, ok)
 		require.Equal(t, resp2, val2)
+	})
+
+	t.Run("compose memcache and rediscache backend with *big.Int values", func(t *testing.T) {
+		backend, err := memcache.NewBackend(10)
+		require.NoError(t, err)
+
+		backend2, err := rediscache.NewBackend(&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
+		require.NoError(t, err)
+
+		mem := cachestore.OpenStore[*big.Int](backend)
+		red := cachestore.OpenStore[*big.Int](backend2)
+
+		composed, err := cachestore.ComposeBackends[*big.Int](backend, backend2)
+		require.NoError(t, err)
+
+		ctx := context.Background()
+
+		bigNum1 := big.NewInt(1234567890)
+		bigNum2 := big.NewInt(9876543210)
+
+		err = composed.Set(ctx, "a", bigNum1)
+		require.NoError(t, err)
+		err = composed.Set(ctx, "b", bigNum2)
+		require.NoError(t, err)
+
+		val1, ok, err := composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, bigNum1, val1)
+
+		val2, ok, err := composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, bigNum2, val2)
+
+		err = mem.Delete(ctx, "a")
+		require.NoError(t, err)
+		err = red.Delete(ctx, "c")
+		require.NoError(t, err)
+
+		val1, ok, err = composed.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, bigNum1, val1)
+
+		bigNum2, ok, err = composed.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, bigNum2, val2)
 	})
 }
 
