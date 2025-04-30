@@ -390,3 +390,67 @@ type apiResponse struct {
 	Headers map[string]string `json:"headers"`
 	Body    []byte            `json:"body"`
 }
+
+func TestTelemetryWrappedMetricsStore(t *testing.T) {
+	ctx := context.Background()
+
+	t.Run("memcache backend", func(t *testing.T) {
+		backend, err := memcache.NewBackend(10)
+		require.NoError(t, err)
+
+		store := NewMetricsStore(cachestore.OpenStore[apiResponse](backend))
+
+		err = store.Set(ctx, "a", apiResponse{Status: 1})
+		require.NoError(t, err)
+
+		err = store.Set(ctx, "b", apiResponse{Status: 2})
+		require.NoError(t, err)
+
+		ms, ok := store.(*metricsStore[apiResponse])
+		require.True(t, ok)
+
+		require.Equal(t, uint64(2), ms.telemetryCounter)
+
+		v1, ok, err := store.Get(ctx, "a")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, apiResponse{Status: 1}, v1)
+
+		v2, ok, err := store.Get(ctx, "b")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, apiResponse{Status: 2}, v2)
+
+		require.Equal(t, uint64(4), ms.telemetryCounter)
+	})
+
+	t.Run("redis backend", func(t *testing.T) {
+		backend, err := rediscache.NewBackend(&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
+		require.NoError(t, err)
+
+		store := NewMetricsStore(cachestore.OpenStore[apiResponse](backend))
+
+		err = store.Set(ctx, "c", apiResponse{Status: 3})
+		require.NoError(t, err)
+
+		err = store.Set(ctx, "d", apiResponse{Status: 4})
+		require.NoError(t, err)
+
+		ms, ok := store.(*metricsStore[apiResponse])
+		require.True(t, ok)
+
+		require.Equal(t, uint64(2), ms.telemetryCounter)
+
+		v1, ok, err := store.Get(ctx, "c")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, apiResponse{Status: 3}, v1)
+
+		v2, ok, err := store.Get(ctx, "d")
+		require.NoError(t, err)
+		require.True(t, ok)
+		require.Equal(t, apiResponse{Status: 4}, v2)
+
+		require.Equal(t, uint64(4), ms.telemetryCounter)
+	})
+}
