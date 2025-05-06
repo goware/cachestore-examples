@@ -117,49 +117,70 @@ func TestCachestoreE2E(t *testing.T) {
 		backend, err := rediscache.NewBackend(&rediscache.Config{Enabled: true, Host: "localhost", Port: 6379, DBIndex: 9})
 		require.NoError(t, err)
 
-		red := cachestore.OpenStore[string](backend)
-
 		ctx := context.Background()
 
-		ok, err := red.Exists(ctx, "foo")
-		require.NoError(t, err)
-		require.False(t, ok)
+		t.Run("type: string", func(t *testing.T) {
+			red := cachestore.OpenStore[string](backend)
+			ok, err := red.Exists(ctx, "foo")
+			require.NoError(t, err)
+			require.False(t, ok)
 
-		err = red.Set(ctx, "foo", "bar")
-		require.NoError(t, err)
+			err = red.Set(ctx, "foo", "bar")
+			require.NoError(t, err)
 
-		ok, err = red.Exists(ctx, "foo")
-		require.NoError(t, err)
-		require.True(t, ok)
+			ok, err = red.Exists(ctx, "foo")
+			require.NoError(t, err)
+			require.True(t, ok)
 
-		val, ok, err := red.Get(ctx, "foo")
-		require.NoError(t, err)
-		require.Equal(t, "bar", val)
-		require.True(t, ok)
-
-		//--
-
-		red2 := cachestore.OpenStore[int](backend)
-		red2.Set(ctx, "age", 123)
-		val2, ok, err := red2.Get(ctx, "age")
-		require.NoError(t, err)
-		require.Equal(t, 123, val2)
-		require.True(t, ok)
-
-		//--
-
-		red3 := cachestore.OpenStore[apiResponse](backend)
-		red3.Set(ctx, "resp1", apiResponse{
-			Status:  200,
-			Headers: map[string]string{"Content-Type": "application/json"},
-			Body:    []byte(`{"message": "Hello, World!"}`),
+			val, ok, err := red.Get(ctx, "foo")
+			require.NoError(t, err)
+			require.Equal(t, "bar", val)
+			require.True(t, ok)
 		})
-		val3, ok, err := red3.Get(ctx, "resp1")
-		require.NoError(t, err)
-		require.True(t, ok)
-		require.Equal(t, 200, val3.Status)
-		require.Equal(t, "application/json", val3.Headers["Content-Type"])
-		require.Equal(t, []byte(`{"message": "Hello, World!"}`), val3.Body)
+
+		t.Run("type: []byte", func(t *testing.T) {
+			red := cachestore.OpenStore[[]byte](backend)
+
+			ok, err := red.Exists(ctx, "name")
+			require.NoError(t, err)
+			require.False(t, ok)
+
+			err = red.Set(ctx, "name", []byte{1, 2, 3})
+			require.NoError(t, err)
+
+			ok, err = red.Exists(ctx, "name")
+			require.NoError(t, err)
+			require.True(t, ok)
+
+			val, ok, err := red.Get(ctx, "name")
+			require.NoError(t, err)
+			require.Equal(t, []byte{1, 2, 3}, val)
+			require.True(t, ok)
+		})
+
+		t.Run("type: int", func(t *testing.T) {
+			red := cachestore.OpenStore[int](backend)
+			red.Set(ctx, "age", 123)
+			val, ok, err := red.Get(ctx, "age")
+			require.NoError(t, err)
+			require.Equal(t, 123, val)
+			require.True(t, ok)
+		})
+
+		t.Run("type: apiResponse", func(t *testing.T) {
+			red := cachestore.OpenStore[apiResponse](backend)
+			red.Set(ctx, "resp1", apiResponse{
+				Status:  200,
+				Headers: map[string]string{"Content-Type": "application/json"},
+				Body:    []byte(`{"message": "Hello, World!"}`),
+			})
+			val, ok, err := red.Get(ctx, "resp1")
+			require.NoError(t, err)
+			require.True(t, ok)
+			require.Equal(t, 200, val.Status)
+			require.Equal(t, "application/json", val.Headers["Content-Type"])
+			require.Equal(t, []byte(`{"message": "Hello, World!"}`), val.Body)
+		})
 	})
 
 	t.Run("compose memcache and rediscache direct", func(t *testing.T) {

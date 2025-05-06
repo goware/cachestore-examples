@@ -11,8 +11,8 @@ go 1.23.0
 require (
 	github.com/goware/cachestore-mem v0.2.1
 	github.com/goware/cachestore-redis v0.2.0
-	github.com/goware/cachestore2 v0.12.0
-	github.com/redis/go-redis/v9 v9.7.3
+	github.com/goware/cachestore2 v0.12.3
+	github.com/redis/go-redis/v9 v9.8.0
 	github.com/stretchr/testify v1.10.0
 )
 
